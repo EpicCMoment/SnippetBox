@@ -1,2 +1,2 @@
 # SnippetBox
-A web app which let's you to post small blogs just like the Github Gists !
+A web app that lets you post small blogs, just like Github Gists !
