@@ -4,7 +4,12 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 )
+
+
+var infoLog *log.Logger = log.New(os.Stdout, "[INFO]\t", log.Ldate | log.Ltime | log.Lshortfile)
+var errorLog *log.Logger = log.New(os.Stderr, "[ERROR]\t", log.Ldate | log.Ltime | log.Llongfile)
 
 func main() {
 
@@ -23,12 +28,18 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 	mux.HandleFunc("/getfile/", sendFile)
 
-	log.Printf("Web server is started on localhost%s", *addr)
+	srv := &http.Server{
+		Addr: *addr,
+		ErrorLog: errorLog,
+		Handler: mux,
+	}
+	
+	infoLog.Printf("Web server is being started on localhost%s", *addr)
 
-	err := http.ListenAndServe(*addr, mux)
+	err := srv.ListenAndServe()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 
 }
