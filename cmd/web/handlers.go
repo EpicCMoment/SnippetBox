@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -10,21 +9,21 @@ import (
 	"text/template"
 )
 
-func sendFile(w http.ResponseWriter, r *http.Request) {
+func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
 
-	log.Println("Entered the sendFile handler")
+	app.infoLog.Println("entered the sendFile handler")
 
-	log.Printf("getfile: %s\n", r.URL.Path)
+	app.infoLog.Printf("getfile: %s\n", r.URL.Path)
 
 	requestedFile := strings.TrimPrefix(r.URL.Path, "/getfile/")
 
-	log.Printf("Requested file is: %s\n", requestedFile)
+	app.infoLog.Printf("requested file is: %s\n", requestedFile)
 
 	http.ServeFile(w, r, filepath.Clean((requestedFile)))
 
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -40,20 +39,20 @@ func home(w http.ResponseWriter, r *http.Request) {
 	ts, err := template.ParseFiles(templateFiles...)
 
 	if err != nil {
-		log.Println(err.Error())
+		app.errorLog.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		log.Println(err.Error())
+		app.errorLog.Println(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
 }
 
-func snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 	snippetIdString := r.URL.Query().Get("id")
 
@@ -68,7 +67,7 @@ func snippetView(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
