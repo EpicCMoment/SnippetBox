@@ -4,9 +4,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"text/template"
 )
+
+func sendFile(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("Entered the sendFile handler")
+
+	log.Printf("getfile: %s\n", r.URL.Path)
+
+	requestedFile := strings.TrimPrefix(r.URL.Path, "/getfile/")
+
+	log.Printf("Requested file is: %s\n", requestedFile)
+
+	http.ServeFile(w, r, filepath.Clean((requestedFile)))
+
+}
 
 func home(w http.ResponseWriter, r *http.Request) {
 
