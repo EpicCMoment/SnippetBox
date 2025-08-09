@@ -20,24 +20,13 @@ func main() {
 	}
 
 	addr := flag.String("addr", ":4000", "HTTP network address")
-	fileServerRoot := flag.String("fsroot", "./ui/static/", "Root folder of the file server")
-
+	
 	flag.Parse()
-
-	fileServer := http.FileServer(http.Dir(*fileServerRoot))
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/view", app.snippetView)
-	mux.HandleFunc("/snippet/create", app.snippetCreate)
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	mux.HandleFunc("/getfile/", app.sendFile)
 
 	srv := &http.Server{
 		Addr: *addr,
 		ErrorLog: app.errorLog,
-		Handler: mux,
+		Handler: app.routes(),
 	}
 	
 	app.infoLog.Printf("Web server is being started on localhost%s", *addr)
