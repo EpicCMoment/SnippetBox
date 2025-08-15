@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"text/template"
+
+	"snippetbox.ariffil.com/internal/models"
 )
 
 func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
@@ -30,25 +32,19 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateFiles := []string{
-		"./ui/html/pages/home.tmpl.html",
-		"./ui/html/pages/base.tmpl.html",
-		"./ui/html/partials/nav.tmpl.html",
-	}
-
-	ts, err := template.ParseFiles(templateFiles...)
+	latestSnippets, err := app.snippets.Latest()
 
 	if err != nil {
-		app.errorLog.Println(err.Error())
 		app.serverError(w, err)
 		return
 	}
 
-	err = ts.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		app.errorLog.Println(err.Error())
-		app.serverError(w, err)
+	data := &templateData{
+		Snippets: latestSnippets,
 	}
+
+	app.render(w, http.StatusOK, "home.tmpl.html", data)
+
 
 }
 
@@ -63,7 +59,25 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Displaying the snippet %d", snippetId)
+	snippet, err := app.snippets.Get(snippetId)
+
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+		} else {
+			app.serverError(w, err)
+		}
+
+		return
+	
+	}
+
+	data := &templateData{
+		Snippet: snippet,
+	}
+
+	app.render(w, http.StatusOK, "view.tmpl.html", data)
+
 
 }
 
@@ -75,6 +89,19 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, "Create a new snippet...")
+	title := "O snail"
+	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly\n\n- Kobayashi Issa"
+	expires := 7
+
+	id, err := app.snippets.Insert(title, content, expires)
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	newSnippetURL := fmt.Sprintf("/snippet/view?id=%d", id)
+
+	http.Redirect(w, r, newSnippetURL, http.StatusSeeOther)
 
 }
