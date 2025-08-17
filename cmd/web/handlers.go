@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/julienschmidt/httprouter"
 	"snippetbox.ariffil.com/internal/models"
 )
 
@@ -27,11 +28,6 @@ func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
-	if r.URL.Path != "/" {
-		app.notFound(w)
-		return
-	}
-
 	latestSnippets, err := app.snippets.Latest()
 
 	if err != nil {
@@ -50,9 +46,9 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
-	snippetIdString := r.URL.Query().Get("id")
+	params := httprouter.ParamsFromContext(r.Context())
 
-	snippetId, err := strconv.Atoi(snippetIdString)
+	snippetId, err := strconv.Atoi(params.ByName("id"))
 
 	if err != nil || snippetId < 1 {
 		app.notFound(w)
@@ -82,11 +78,11 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		app.clientError(w, http.StatusMethodNotAllowed)
-		return
-	}
+	fmt.Fprint(w, "Display the form for creating a new snippet...")
+
+}
+
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 
 	title := "O snail"
 	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly\n\n- Kobayashi Issa"
@@ -99,7 +95,7 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newSnippetURL := fmt.Sprintf("/snippet/view?id=%d", id)
+	newSnippetURL := fmt.Sprintf("/snippet/view/%d", id)
 
 	http.Redirect(w, r, newSnippetURL, http.StatusSeeOther)
 

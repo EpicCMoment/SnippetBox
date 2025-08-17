@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/justinas/alice"
 )
 
 func (app *application) routes() http.Handler {
@@ -10,14 +13,21 @@ func (app *application) routes() http.Handler {
 	fileServerRoot := flag.String("fsroot", "./ui/static/", "Root folder of the file server")
 	fileServer := http.FileServer(http.Dir(*fileServerRoot))
 
-	mux := http.NewServeMux()
+	router := httprouter.New()
+	router.NotFound = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+		app.notFound(w)
+	})
 
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/view", app.snippetView)
-	mux.HandleFunc("/snippet/create", app.snippetCreate)
-	mux.HandleFunc("/getfile/", app.sendFile)
+	router.HandlerFunc(http.MethodGet, "/", app.home)
+	router.HandlerFunc(http.MethodGet, "/snippet/view/:id", app.snippetView)
+	router.HandlerFunc(http.MethodGet, "/snippet/create", app.snippetCreate)
+	router.HandlerFunc(http.MethodGet, "/getfile/:filename", app.sendFile)
 
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+	router.HandlerFunc(http.MethodPost, "/snippet/create", app.snippetCreatePost)
 
-	return app.recoverPanic(app.logRequest(secureHeaders(mux)))
+	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
+
+	middlewareChain := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+
+	return middlewareChain.Then(router)
 }
