@@ -3,13 +3,19 @@ package main
 import (
 	"html/template"
 	"path/filepath"
+	"time"
 
 	"snippetbox.ariffil.com/internal/models"
 )
 
+var functions = template.FuncMap {
+	"humanDate": humanDate,
+}
+
 type templateData struct {
-	Snippet *models.Snippet
-	Snippets []*models.Snippet
+	Snippet		*models.Snippet
+	Snippets	[]*models.Snippet
+	CurrentYear	int
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -26,7 +32,7 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 		pageName := filepath.Base(page)
 
-		ts, err := template.ParseFiles("./ui/html/base.tmpl.html")
+		ts, err := template.New(pageName).Funcs(functions).ParseFiles("./ui/html/base.tmpl.html")
 
 		if err != nil {
 			return nil, err
@@ -50,4 +56,8 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	return cache, nil
 
+}
+
+func humanDate(t time.Time) string {
+	return t.Format("02 Jan 2006 at 15:04")
 }

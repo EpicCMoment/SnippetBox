@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (app *application) routes() *http.ServeMux {
+func (app *application) routes() http.Handler {
 
 	fileServerRoot := flag.String("fsroot", "./ui/static/", "Root folder of the file server")
 	fileServer := http.FileServer(http.Dir(*fileServerRoot))
@@ -19,5 +19,5 @@ func (app *application) routes() *http.ServeMux {
 
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	return mux
+	return app.recoverPanic(app.logRequest(secureHeaders(mux)))
 }
