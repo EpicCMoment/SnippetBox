@@ -2,15 +2,18 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/spf13/viper"
 	"snippetbox.ariffil.com/internal/models"
 )
 
@@ -20,25 +23,47 @@ type application struct {
 	snippets		*models.SnippetModel
 	templateCache	map[string]*template.Template
 	formDecoder		*form.Decoder
+	config			*StartupConfig
+	sessManager		*scs.SessionManager
+}
+
+type StartupConfig struct {
+	App struct {
+		Port int `mapstructure: "port"`
+
+		Database struct {
+			Username string `mapstructure: "username"`
+			Password string `mapstructure: "password"`
+			Host string		`mapstructure: "host"`
+			Port int		`mapstructure: "port"`
+		} `mapstructure: "database"`
+
+	} `mapstructure: "app"`
 }
 
 func main() {
 
+	// set the loggers
 	errLog := log.New(os.Stderr, "[ERROR]\t", log.Ldate | log.Ltime | log.Llongfile)
 	infoLog := log.New(os.Stdout, "[INFO]\t", log.Ldate | log.Ltime | log.Lshortfile)
 
-	infoLog.Println("Parsing the command line flags")
-	// process command line flags
-	addr := flag.String("addr", ":4000", "HTTP network address")
-	
-	flag.Parse()
+	app := application {
+		errorLog: errLog,
+		infoLog: infoLog,
+	}
 
-	// create database connection pool
-	
+	// Read in the startup config "config.yaml"
+	stConf, err := getStartupConfig()
+	if err != nil {
+		app.errorLog.Fatalln(err)
+	}
+	app.config = stConf
+	// Config done
 
+	// Databse connection start
 	infoLog.Println("Creating a connection pool to database")
 
-	db, err := openDB()
+	db, err := openDB(&app)
 
 	if err != nil {
 		errLog.Fatal(err.Error())
@@ -46,33 +71,47 @@ func main() {
 
 	defer db.Close()
 
+	app.snippets = &models.SnippetModel{DB: db}
+	// Database connection done
+
+	// Create a session manager for use sessions
+	app.sessManager = scs.New()
+	app.sessManager.Store = mysqlstore.New(db)
+	app.sessManager.Lifetime = 12 * time.Hour
+	// Session creation done
+
+
+
+	// Cache templating start
 
 	infoLog.Println("Caching the HTML templates")
 
 	templateCache, err := newTemplateCache()
-
 	if err != nil {
 		errLog.Fatal(err.Error())
 	}
-
-	formDecoder := form.NewDecoder()
 	
-	app := application {
-		errorLog: errLog,
-		infoLog: infoLog,
-		snippets: &models.SnippetModel{DB: db},
-		templateCache: templateCache,
-		formDecoder: formDecoder,
-	}
+	app.templateCache = templateCache
+	// Cache templating end
 
+
+	// Set the form decoder
+	formDecoder := form.NewDecoder()
+	app.formDecoder = formDecoder
+	// Form decoder setting done
+
+
+
+
+	addr := fmt.Sprintf("127.0.0.1:%d", stConf.App.Port)
 
 	srv := &http.Server{
-		Addr: *addr,
+		Addr: addr,
 		ErrorLog: app.errorLog,
 		Handler: app.routes(),
 	}
 	
-	app.infoLog.Printf("Web server is being started on localhost%s", *addr)
+	app.infoLog.Printf("Web server is being started on http://%s", addr)
 
 	err = srv.ListenAndServe()
 
@@ -82,10 +121,37 @@ func main() {
 
 }
 
-func openDB() (*sql.DB, error){
+func getStartupConfig() (*StartupConfig, error) {
 
-	mysqlUser := os.Getenv("MYSQL_USER")
-	mysqlPasswd := os.Getenv("MYSQL_PASSWORD")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/home/rudrik/Desktop/SnippetBox/")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		cwd, _ := os.Getwd()
+		return nil, fmt.Errorf("error reading the config file %s, %s", cwd + "/config.yaml", err)
+	}
+
+	sc := StartupConfig{}
+
+	sc.App.Port = viper.GetInt("app.port")
+	sc.App.Database.Host = viper.GetString("app.database.host")
+	sc.App.Database.Port = viper.GetInt("app.database.port")
+	sc.App.Database.Username = viper.GetString("app.database.username")
+	sc.App.Database.Password = viper.GetString("app.database.password")
+
+	//app.infoLog.Printf("Startup config is read %+v", sc)
+
+	return &sc, nil
+
+}
+
+func openDB(app *application) (*sql.DB, error){
+
+	mysqlUser := app.config.App.Database.Username
+	mysqlPasswd := app.config.App.Database.Password
 
 	dataSourceString := fmt.Sprintf("%s:%s@/snippetbox?parseTime=true",
 										mysqlUser,

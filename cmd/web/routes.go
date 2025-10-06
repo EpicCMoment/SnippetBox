@@ -18,16 +18,23 @@ func (app *application) routes() http.Handler {
 		app.notFound(w)
 	})
 
-	router.HandlerFunc(http.MethodGet, "/", app.home)
-	router.HandlerFunc(http.MethodGet, "/snippet/view/:id", app.snippetView)
-	router.HandlerFunc(http.MethodGet, "/snippet/create", app.snippetCreate)
-	router.HandlerFunc(http.MethodGet, "/getfile/:filename", app.sendFile)
-
-	router.HandlerFunc(http.MethodPost, "/snippet/create", app.snippetCreatePost)
+	// all handlers run after this middleware
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
 
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
+	router.HandlerFunc(http.MethodGet, "/getfile/:filename", app.sendFile)
 
-	middlewareChain := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
 
-	return middlewareChain.Then(router)
+
+	// this middleware provides session management for dynamically generated content
+	dynamicMiddleware := alice.New(app.sessManager.LoadAndSave)
+
+	router.Handler(http.MethodGet, "/", dynamicMiddleware.ThenFunc(app.home))
+	router.Handler(http.MethodGet, "/snippet/view/:id", dynamicMiddleware.ThenFunc(app.snippetView))
+	router.Handler(http.MethodGet, "/snippet/create", dynamicMiddleware.ThenFunc(app.snippetCreate))
+	router.Handler(http.MethodPost, "/snippet/create", dynamicMiddleware.ThenFunc(app.snippetCreatePost))
+
+
+
+	return standardMiddleware.Then(router)
 }
