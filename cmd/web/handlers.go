@@ -138,8 +138,11 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newSnippetURL := fmt.Sprintf("/snippet/view/%d", id)
+	app.sessManager.Put(r.Context(), "flash", "Snippet successfully created!")
 
+
+
+	newSnippetURL := fmt.Sprintf("/snippet/view/%d", id)
 	http.Redirect(w, r, newSnippetURL, http.StatusSeeOther)
 
 }
