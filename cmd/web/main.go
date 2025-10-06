@@ -111,9 +111,9 @@ func main() {
 		Handler: app.routes(),
 	}
 	
-	app.infoLog.Printf("Web server is being started on http://%s", addr)
+	app.infoLog.Printf("Web server is being started on https://%s", addr)
 
-	err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("tls/cert.pem", "tls/key.pem")
 
 	if err != nil {
 		app.errorLog.Fatal(err)
