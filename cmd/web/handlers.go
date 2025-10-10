@@ -166,6 +166,52 @@ func (app *application) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) login(w http.ResponseWriter, r *http.Request) {
 
+	err := r.ParseForm()
+
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	var loginForm userLoginForm
+
+	err = app.formDecoder.Decode(&loginForm, r.PostForm)
+
+	if err != nil {
+		app.clientError(w, http.StatusUnprocessableEntity)
+		return
+	}
+
+	loginForm.CheckField(validator.NotBlank(loginForm.Email), "email", "Email field can't be empty")
+	loginForm.CheckField(validator.IsValidEmail(loginForm.Email), "email", "Please provide a valid email")
+
+	loginForm.CheckField(validator.NotBlank(loginForm.Password), "password", "Password field can't be empty")
+
+	if !loginForm.Valid() {
+
+		data := templateData{}
+		data.Form = loginForm
+
+		app.render(w, http.StatusUnauthorized, "login.tmpl.html", &data)
+		return
+	}
+
+	_, err = app.users.Authenticate(loginForm.Email, loginForm.Password)
+
+	if err != nil {
+		loginForm.AddNonFieldError("Email or password is wrong!")
+
+		data := templateData{}
+		data.Form = loginForm
+
+		app.render(w, http.StatusUnauthorized, "login.tmpl.html", &data)
+		return
+
+	}
+
+	app.sessManager.Put(r.Context(), "flash", "Successfully logged in!")
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 
 }
 

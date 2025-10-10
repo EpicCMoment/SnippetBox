@@ -22,9 +22,22 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (um *UserModel) Insert(name, email, password string) error {
+
+func hashPassword(password string) (string, error) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
+
+}
+
+func (um *UserModel) Insert(name, email, password string) error {
+
+	hashedPassword, err := hashPassword(password)
 
 	if err != nil {
 		return err
@@ -57,8 +70,27 @@ func (um *UserModel) Exists(id int) error {
 
 }
 
-func (um *UserModel) Authenticate(email, password string) error {
+func (um *UserModel) Authenticate(email, password string) (int, error) {
 
-	panic("not implemented")
+	stmt := `SELECT id, hashed_password FROM users WHERE email = ?;`
+
+	row := um.DB.QueryRow(stmt, email)
+
+	var userId int
+	var hashedPassword string
+
+	err := row.Scan(&userId, &hashedPassword)
+
+	if err != nil {
+		return -1, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+
+	if err != nil {
+		return -1, err
+	}
+
+	return userId, nil
 
 }
