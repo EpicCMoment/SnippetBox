@@ -11,7 +11,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "cmd/web/",
-            "cwd": "/home/rudrik/SnippetBox/",
+            "cwd": "/home/rudrik/Desktop/SnippetBox/",
             "env": {
                 "MYSQL_USER" : "web",
                 "MYSQL_PASSWORD" : "pass"

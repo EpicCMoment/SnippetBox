@@ -1,0 +1,30 @@
+{{define "title"}}Login{{end}}
+
+{{define "main"}}
+
+<form action="/user/login" method="post" novalidate>
+
+    <div>
+        <label>Email:</label>
+        <input type="text" name="email" value="{{.Form.Email}}">
+        {{with .Form.FieldErrors.email}}
+            <label class="error">{{.}}</label>
+        {{end}}
+    </div>
+
+        <div>
+        <label>Password:</label>
+        <input type="password" name="password">
+        {{with .Form.FieldErrors.password}}
+            <label class="error">{{.}}</label>
+        {{end}}
+    </div>
+
+    <div>
+        <input type="submit" value="Login">
+    </div>
+
+
+</form>
+
+{{end}}

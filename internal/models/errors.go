@@ -4,3 +4,5 @@ import "errors"
 
 var ErrNoRecord error = errors.New("models: no matching record found")
 
+var ErrDuplicateEmail error = errors.New("models: duplicate email")
+

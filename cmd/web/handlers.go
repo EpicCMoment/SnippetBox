@@ -14,10 +14,23 @@ import (
 )
 
 type snippetCreateForm struct {
-	Title		string	`form:"title"`
-	Content		string	`form:"content"`
-	Expires		int		`form:"expires"`
-	validator.Validator	`form:"-"`
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
+}
+
+type userSignupForm struct {
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
+type userLoginForm struct {
+	Email		string `form:"email"`
+	Password	string `form:"password"`
+	validator.Validator `form:"-"`
 }
 
 func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +62,6 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, http.StatusOK, "home.tmpl.html", data)
 
-
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -73,14 +85,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return
-	
+
 	}
 
 	data := app.newTemplateData(r)
 	data.Snippet = snippet
 
 	app.render(w, http.StatusOK, "view.tmpl.html", data)
-
 
 }
 
@@ -114,7 +125,6 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-
 	form.CheckField(validator.NotBlank(form.Title), "title", "This field cannot be blank")
 	form.CheckField(validator.BelowMaxChars(form.Title, 100), "title", "This field cannot be more than 100 characters long")
 	form.CheckField(validator.NotBlank(form.Content), "content", "This field cannot be blank")
@@ -130,7 +140,6 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-
 	id, err := app.snippets.Insert(form.Title, form.Content, form.Expires)
 
 	if err != nil {
@@ -140,9 +149,106 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 
 	app.sessManager.Put(r.Context(), "flash", "Snippet successfully created!")
 
-
-
 	newSnippetURL := fmt.Sprintf("/snippet/view/%d", id)
 	http.Redirect(w, r, newSnippetURL, http.StatusSeeOther)
+
+}
+
+func (app *application) serveLoginPage(w http.ResponseWriter, r *http.Request) {
+
+	data := app.newTemplateData(r)
+
+	data.Form = userLoginForm{}
+
+	app.render(w, http.StatusOK, "login.tmpl.html", data)
+
+}
+
+func (app *application) login(w http.ResponseWriter, r *http.Request) {
+
+
+}
+
+func (a *application) serveSignupPage(w http.ResponseWriter, r *http.Request) {
+
+	data := a.newTemplateData(r)
+
+	data.Form = userSignupForm{}
+
+	a.render(w, http.StatusOK, "signup.tmpl.html", data)
+
+}
+
+func (app *application) signup(w http.ResponseWriter, r *http.Request) {
+
+	err := r.ParseForm()
+
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	var form userSignupForm
+
+	err = app.formDecoder.Decode(&form, r.PostForm)
+
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// validation for name field
+	form.CheckField(validator.NotBlank(form.Name), "name", "Name cannot be empty")
+	form.CheckField(validator.BelowMaxChars(form.Name, 255), "name", "Name cannot be more than 255 characters long")
+
+	// validation for email
+	form.CheckField(validator.NotBlank(form.Email), "email", "Email cannot be blank")
+	form.CheckField(validator.BelowMaxChars(form.Email, 255), "email", "Email cannot be more than 255 characters long")
+	form.CheckField(validator.IsValidEmail(form.Email), "email", "Please provide a valid email")
+
+	// validation for password
+	form.CheckField(validator.NotBlank(form.Password), "password", "Password cannot be blank")
+	form.CheckField(validator.MinChars(form.Password, 8), "password", "Password should be at least 8 characters long")
+	form.CheckField(validator.BelowMaxChars(form.Password, 19), "password", "Password can't be longer than 18 characters")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+
+		app.render(w, http.StatusUnprocessableEntity, "signup.tmpl.html", data)
+
+		return
+
+	}
+
+	err = app.users.Insert(form.Name, form.Email, form.Password)
+
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+
+			form.AddFieldError("email", "Email address already in use")
+
+			data := app.newTemplateData(r)
+			data.Form = form
+
+			app.render(w, http.StatusUnprocessableEntity, "signup.tmpl.html", data)
+
+		} else {
+			app.serverError(w, err)
+		}
+
+		return
+	}
+
+	app.sessManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
+
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+
+
+}
+
+func (a *application) logout(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Fprintln(w, "user will be logged out with the parameters in post form")
 
 }

@@ -18,13 +18,14 @@ import (
 )
 
 type application struct {
-	errorLog		*log.Logger
-	infoLog			*log.Logger
-	snippets		*models.SnippetModel
-	templateCache	map[string]*template.Template
-	formDecoder		*form.Decoder
-	config			*StartupConfig
-	sessManager		*scs.SessionManager
+	errorLog      *log.Logger
+	infoLog       *log.Logger
+	snippets      *models.SnippetModel
+	users         *models.UserModel
+	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
+	config        *StartupConfig
+	sessManager   *scs.SessionManager
 }
 
 type StartupConfig struct {
@@ -34,22 +35,21 @@ type StartupConfig struct {
 		Database struct {
 			Username string `mapstructure: "username"`
 			Password string `mapstructure: "password"`
-			Host string		`mapstructure: "host"`
-			Port int		`mapstructure: "port"`
+			Host     string `mapstructure: "host"`
+			Port     int    `mapstructure: "port"`
 		} `mapstructure: "database"`
-
 	} `mapstructure: "app"`
 }
 
 func main() {
 
 	// set the loggers
-	errLog := log.New(os.Stderr, "[ERROR]\t", log.Ldate | log.Ltime | log.Llongfile)
-	infoLog := log.New(os.Stdout, "[INFO]\t", log.Ldate | log.Ltime | log.Lshortfile)
+	errLog := log.New(os.Stderr, "[ERROR]\t", log.Ldate|log.Ltime|log.Llongfile)
+	infoLog := log.New(os.Stdout, "[INFO]\t", log.Ldate|log.Ltime|log.Lshortfile)
 
-	app := application {
+	app := application{
 		errorLog: errLog,
-		infoLog: infoLog,
+		infoLog:  infoLog,
 	}
 
 	// Read in the startup config "config.yaml"
@@ -72,6 +72,7 @@ func main() {
 	defer db.Close()
 
 	app.snippets = &models.SnippetModel{DB: db}
+	app.users = &models.UserModel{DB: db}
 	// Database connection done
 
 	// Create a session manager for use sessions
@@ -79,8 +80,6 @@ func main() {
 	app.sessManager.Store = mysqlstore.New(db)
 	app.sessManager.Lifetime = 12 * time.Hour
 	// Session creation done
-
-
 
 	// Cache templating start
 
@@ -90,30 +89,26 @@ func main() {
 	if err != nil {
 		errLog.Fatal(err.Error())
 	}
-	
+
 	app.templateCache = templateCache
 	// Cache templating end
-
 
 	// Set the form decoder
 	formDecoder := form.NewDecoder()
 	app.formDecoder = formDecoder
 	// Form decoder setting done
 
-
-
-
 	addr := fmt.Sprintf("127.0.0.1:%d", stConf.App.Port)
 
 	srv := &http.Server{
-		Addr: addr,
+		Addr:     addr,
 		ErrorLog: app.errorLog,
-		Handler: app.routes(),
+		Handler:  app.routes(),
 	}
-	
+
 	app.infoLog.Printf("Web server is being started on https://%s", addr)
 
-	err = srv.ListenAndServeTLS("tls/cert.pem", "tls/key.pem")
+	err = srv.ListenAndServeTLS("/home/rudrik/Desktop/SnippetBox/tls/cert.pem", "/home/rudrik/Desktop/SnippetBox/tls/key.pem")
 
 	if err != nil {
 		app.errorLog.Fatal(err)
@@ -131,7 +126,7 @@ func getStartupConfig() (*StartupConfig, error) {
 	err := viper.ReadInConfig()
 	if err != nil {
 		cwd, _ := os.Getwd()
-		return nil, fmt.Errorf("error reading the config file %s, %s", cwd + "/config.yaml", err)
+		return nil, fmt.Errorf("error reading the config file %s, %s", cwd+"/config.yaml", err)
 	}
 
 	sc := StartupConfig{}
@@ -148,14 +143,14 @@ func getStartupConfig() (*StartupConfig, error) {
 
 }
 
-func openDB(app *application) (*sql.DB, error){
+func openDB(app *application) (*sql.DB, error) {
 
 	mysqlUser := app.config.App.Database.Username
 	mysqlPasswd := app.config.App.Database.Password
 
 	dataSourceString := fmt.Sprintf("%s:%s@/snippetbox?parseTime=true",
-										mysqlUser,
-										mysqlPasswd)	
+		mysqlUser,
+		mysqlPasswd)
 
 	db, err := sql.Open("mysql", dataSourceString)
 
@@ -168,6 +163,5 @@ func openDB(app *application) (*sql.DB, error){
 	}
 
 	return db, nil
-
 
 }

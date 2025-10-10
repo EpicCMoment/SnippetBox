@@ -8,16 +8,16 @@ import (
 	"snippetbox.ariffil.com/internal/models"
 )
 
-var functions = template.FuncMap {
+var functions = template.FuncMap{
 	"humanDate": humanDate,
 }
 
 type templateData struct {
-	Snippet		*models.Snippet
-	Snippets	[]*models.Snippet
-	CurrentYear	int
-	Form		any
-	Flash		string
+	Snippet     *models.Snippet
+	Snippets    []*models.Snippet
+	CurrentYear int
+	Form        any
+	Flash       string
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

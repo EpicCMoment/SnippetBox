@@ -1,17 +1,20 @@
 package validator
 
 import (
+	"net/mail"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
 
 type Validator struct {
+	NonFieldErrors []string
 	FieldErrors map[string]string
 }
 
 
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
 }
 
 func (v *Validator) AddFieldError(key, message string) {
@@ -25,6 +28,12 @@ func (v *Validator) AddFieldError(key, message string) {
 	if !exists {
 		v.FieldErrors[key] = message
 	}
+
+}
+
+func (v *Validator) AddNonFieldError(message string) {
+
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 
 }
 
@@ -46,12 +55,23 @@ func BelowMaxChars(field string, n int) bool {
 
 func PermittedInt(value int, permittedValues ...int) bool {
 
-	for _, permVal := range permittedValues {
-		if value == permVal {
-			return true
-		}
+	return slices.Contains(permittedValues, value) 
+
+}
+
+func IsValidEmail(email string) bool {
+
+	_, err := mail.ParseAddress(email)
+
+	if err != nil {
+		return false
 	}
 
-	return false
+	return true
 
+
+}
+
+func MinChars(value string, n int) bool {
+	return utf8.RuneCountInString(value) >= n
 }

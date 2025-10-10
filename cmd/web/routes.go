@@ -14,7 +14,7 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir(*fileServerRoot))
 
 	router := httprouter.New()
-	router.NotFound = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 	})
 
@@ -24,8 +24,6 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 	router.HandlerFunc(http.MethodGet, "/getfile/:filename", app.sendFile)
 
-
-
 	// this middleware provides session management for dynamically generated content
 	dynamicMiddleware := alice.New(app.sessManager.LoadAndSave)
 
@@ -34,7 +32,13 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/snippet/create", dynamicMiddleware.ThenFunc(app.snippetCreate))
 	router.Handler(http.MethodPost, "/snippet/create", dynamicMiddleware.ThenFunc(app.snippetCreatePost))
 
+	router.Handler(http.MethodGet, "/user/login", dynamicMiddleware.ThenFunc(app.serveLoginPage))
+	router.Handler(http.MethodPost, "/user/login", dynamicMiddleware.ThenFunc(app.login))
 
+	router.Handler(http.MethodGet, "/user/signup", dynamicMiddleware.ThenFunc(app.serveSignupPage))
+	router.Handler(http.MethodPost, "/user/signup", dynamicMiddleware.ThenFunc(app.signup))
+
+	router.Handler(http.MethodPost, "/user/logout", dynamicMiddleware.ThenFunc(app.logout))
 
 	return standardMiddleware.Then(router)
 }
