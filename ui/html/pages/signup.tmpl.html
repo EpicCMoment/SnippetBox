@@ -3,6 +3,8 @@
 {{define "main"}}
 
 <form action="/user/signup" method="post" noValidate>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
     <div>
         <label >Name:</label>
         <input type="text" name="name" value="{{.Form.Name}}">

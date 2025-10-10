@@ -31,6 +31,7 @@ type application struct {
 type StartupConfig struct {
 	App struct {
 		Port int `mapstructure: "port"`
+		Host string `mapstructure: "host"`
 
 		Database struct {
 			Username string `mapstructure: "username"`
@@ -98,7 +99,7 @@ func main() {
 	app.formDecoder = formDecoder
 	// Form decoder setting done
 
-	addr := fmt.Sprintf("127.0.0.1:%d", stConf.App.Port)
+	addr := fmt.Sprintf("%s:%d", stConf.App.Host, stConf.App.Port)
 
 	srv := &http.Server{
 		Addr:     addr,
@@ -132,6 +133,7 @@ func getStartupConfig() (*StartupConfig, error) {
 	sc := StartupConfig{}
 
 	sc.App.Port = viper.GetInt("app.port")
+	sc.App.Host = viper.GetString("app.host")
 	sc.App.Database.Host = viper.GetString("app.database.host")
 	sc.App.Database.Port = viper.GetInt("app.database.port")
 	sc.App.Database.Username = viper.GetString("app.database.username")
