@@ -2,6 +2,7 @@ package main
 
 import (
 	"html/template"
+	"net/http"
 	"path/filepath"
 	"time"
 
@@ -18,6 +19,7 @@ type templateData struct {
 	CurrentYear int
 	Form        any
 	Flash       string
+	IsAuthenticated	bool
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -58,6 +60,15 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	return cache, nil
 
+}
+
+
+func (app *application) newTemplateData(r *http.Request) *templateData {
+	return &templateData{
+		CurrentYear: time.Now().Year(),
+		Flash:       app.sessManager.PopString(r.Context(), "flash"),
+		IsAuthenticated: app.isAuthenticated(r),
+	}
 }
 
 func humanDate(t time.Time) string {

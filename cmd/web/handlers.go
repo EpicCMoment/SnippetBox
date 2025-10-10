@@ -219,6 +219,7 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 	app.sessManager.Put(r.Context(), "authenticatedUserID", userID)
 
 	app.sessManager.Put(r.Context(), "flash", "Successfully logged in!")
+	app.sessManager.Put(r.Context(), "loggedIn", true)
 
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 
@@ -312,6 +313,7 @@ func (app *application) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessManager.Remove(r.Context(), "authenticatedUserID")
+	app.sessManager.Remove(r.Context(), "loggedIn")
 
 	app.sessManager.Put(r.Context(), "flash", "You've been logged out successfully!")
 

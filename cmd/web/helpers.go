@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
-	"time"
 )
 
 func (app *application) serverError(w http.ResponseWriter, err error) {
@@ -59,9 +58,6 @@ func (app *application) render(w http.ResponseWriter, status int, page string, d
 
 }
 
-func (a *application) newTemplateData(r *http.Request) *templateData {
-	return &templateData{
-		CurrentYear: time.Now().Year(),
-		Flash:       a.sessManager.PopString(r.Context(), "flash"),
-	}
+func (app *application) isAuthenticated(r *http.Request) bool {
+	return app.sessManager.Exists(r.Context(), "authenticatedUserID")
 }
