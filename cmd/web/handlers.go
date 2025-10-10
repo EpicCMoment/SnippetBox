@@ -220,7 +220,7 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 
 	app.sessManager.Put(r.Context(), "flash", "Successfully logged in!")
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 
 }
 
@@ -302,8 +302,19 @@ func (app *application) signup(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *application) logout(w http.ResponseWriter, r *http.Request) {
+func (app *application) logout(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Fprintln(w, "user will be logged out with the parameters in post form")
+	err := app.sessManager.RenewToken(r.Context())
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	app.sessManager.Remove(r.Context(), "authenticatedUserID")
+
+	app.sessManager.Put(r.Context(), "flash", "You've been logged out successfully!")
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 
 }
