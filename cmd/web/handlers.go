@@ -196,7 +196,7 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = app.users.Authenticate(loginForm.Email, loginForm.Password)
+	userID, err := app.users.Authenticate(loginForm.Email, loginForm.Password)
 
 	if err != nil {
 		loginForm.AddNonFieldError("Email or password is wrong!")
@@ -208,6 +208,15 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+
+	err = app.sessManager.RenewToken(r.Context())
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	app.sessManager.Put(r.Context(), "authenticatedUserID", userID)
 
 	app.sessManager.Put(r.Context(), "flash", "Successfully logged in!")
 
@@ -286,8 +295,8 @@ func (app *application) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
 
+	app.sessManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 
 
