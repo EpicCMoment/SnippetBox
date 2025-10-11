@@ -1,17 +1,16 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+	"snippetbox.ariffil.com/ui"
 )
 
 func (app *application) routes() http.Handler {
 
-	fileServerRoot := flag.String("fsroot", "./ui/static/", "Root folder of the file server")
-	fileServer := http.FileServer(http.Dir(*fileServerRoot))
+	fileServer := http.FileServer(http.FS(ui.Files))
 
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +30,7 @@ func (app *application) routes() http.Handler {
 
 	// middleware definitions end
 
-	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
+	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
 	router.HandlerFunc(http.MethodGet, "/getfile/:filename", app.GET_sendFile)
 
 
