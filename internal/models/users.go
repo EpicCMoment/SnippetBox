@@ -64,9 +64,15 @@ func (um *UserModel) Insert(name, email, password string) error {
 	return nil
 }
 
-func (um *UserModel) Exists(id int) error {
+func (um *UserModel) Exists(id int) (bool, error) {
 
-	panic("not implemented")	
+	var exists bool
+
+	stmt := `SELECT EXISTS(SELECT true FROM users WHERE id = ?);`
+
+	err := um.DB.QueryRow(stmt, id).Scan(&exists)
+
+	return exists, err
 
 }
 

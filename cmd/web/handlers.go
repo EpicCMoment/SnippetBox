@@ -33,7 +33,7 @@ type userLoginForm struct {
 	validator.Validator `form:"-"`
 }
 
-func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
+func (app *application) GET_sendFile(w http.ResponseWriter, r *http.Request) {
 
 	app.infoLog.Println("entered the sendFile handler")
 
@@ -47,7 +47,7 @@ func (app *application) sendFile(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) {
+func (app *application) GET_home(w http.ResponseWriter, r *http.Request) {
 
 	latestSnippets, err := app.snippets.Latest()
 
@@ -64,7 +64,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *application) GET_snippetView(w http.ResponseWriter, r *http.Request) {
 
 	params := httprouter.ParamsFromContext(r.Context())
 
@@ -95,7 +95,7 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (app *application) GET_snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 
@@ -107,7 +107,7 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+func (app *application) POST_snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 
@@ -154,7 +154,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 
 }
 
-func (app *application) serveLoginPage(w http.ResponseWriter, r *http.Request) {
+func (app *application) GET_login(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 
@@ -164,7 +164,7 @@ func (app *application) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) login(w http.ResponseWriter, r *http.Request) {
+func (app *application) POST_login(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 
@@ -225,7 +225,7 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *application) serveSignupPage(w http.ResponseWriter, r *http.Request) {
+func (a *application) GET_signup(w http.ResponseWriter, r *http.Request) {
 
 	data := a.newTemplateData(r)
 
@@ -235,7 +235,7 @@ func (a *application) serveSignupPage(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) signup(w http.ResponseWriter, r *http.Request) {
+func (app *application) POST_signup(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 
@@ -303,7 +303,7 @@ func (app *application) signup(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *application) logout(w http.ResponseWriter, r *http.Request) {
+func (app *application) POST_logout(w http.ResponseWriter, r *http.Request) {
 
 	err := app.sessManager.RenewToken(r.Context())
 
